@@ -36,7 +36,7 @@ class User:
         obj = {}
         obj['type'] = "INSERT"
         obj['ID'] = self.ID
-        obj['CID'] = 3
+        obj['CID'] = self.ID
         obj['Data'] = Data
         message = marshal.dumps(obj)
         message_send = struct.pack('!I', len(message)) + message 
