@@ -1,6 +1,8 @@
 import pymysql.cursors
 import socket
 import sys
+import marshal
+import struct
 
 class Server:
     
@@ -48,15 +50,25 @@ class Server:
         print("TTP is listening for requests.")
         while(True):
             connection, address = self.s.accept()
-            request = connection.recv()
-            if(request.type == "INSERT"):
-                self.insert(request.ID, request.CID, request.Data)
-                connection.send("INSERT SUCCES")
-            elif(request.type == "REQUEST"):
-                results = self.request(request.ID)
-                connection.send(results)
+            # first receive the size of the data the client is going to send
+            request_size = connection.recv(4)
+            size = struct.unpack('!I', request_size)[0]
+            # receive the real data
+            request = connection.recv(size)
+            request = marshal.loads(request)
+            # do request and prepare response
+            if(request['type'] == "INSERT"):
+                self.insert(request['ID'], request['CID'], request['Data'])
+                message = "INSERT SUCCES"
+            elif(request['type'] == "REQUEST"):
+                results = self.request(request['ID'])
+                message = results
             else:
-                connection.send("Command not recognized.")
+                message = "Command not recognized."
+            # send a message back either containing data or containting a message
+            message = marshal.dumps(message)
+            message_send = struct.pack('!I', len(message)) + message
+            connection.send(message_send)
 
     def insert(self, ID, CID, Data):
         get_membership_query = "SELECT * FROM Membership WHERE PID = '%i' AND CID = '%i'" % (ID, CID)
@@ -71,17 +83,21 @@ class Server:
                 result = cursor.fetchone()
                 if(result[1] == ID and result[2] == CID):
                     self.cursor.execute(insert_data_query)
+            self.db.commit()
         except:
            print("Person is not a member or SQL error")
 
     def request(self, ID):
-        get_data_query = "SELECT * FROM Data WHERE PID = '%i'" % ID
+        get_data_query = "SELECT * FROM Data WHERE `PID` = '%i'" % ID
+        print(get_data_query)
         try:
             self.cursor.execute(get_data_query)
-            results = cursor.fetchall()
+            results = self.cursor.fetchall()
+            print(results)
         except:
-            print("Could not fetch or send results")
-        return results
+            print("Could not fetch results")
+        finally:
+            return results
 
 
 def main():
