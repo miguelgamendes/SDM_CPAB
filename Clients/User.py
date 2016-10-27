@@ -71,7 +71,7 @@ class User:
         for result in results:
             # server only sends data, so index is 0
             Data = self.decrypt(result[0])
-            print(Data)
+            print("result: ", Data)
         s.close()
 
     # inserts a new entry into the server if you have the permissions
@@ -135,7 +135,7 @@ def main():
 
     # -------------------------------------------------
     # USER 2
-    user2 = User(1, "localhost", 12345, 'localhost', 12346, {"d"})
+    user2 = User(2, "localhost", 12345, 'localhost', 12346, {"d"})
     user2.retrieve()
 
 if __name__ == "__main__":
