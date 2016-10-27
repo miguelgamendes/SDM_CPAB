@@ -1,13 +1,13 @@
 import pymysql.cursors
 import socket
 import sys
-import marshal
+import pickle
 import struct
 
 class Server:
     
     def __init__(self, hostname, port):
-        print("Hostname:\n ", hostname, "\nPort:\n ", port, "\n")
+        print("SERVER: \n\nHostname:\n ", hostname, "\nPort:\n ", port, "\n")
         # setup database
         self.hostname = hostname
         self.port = port
@@ -47,7 +47,7 @@ class Server:
 
     def listen(self):
         self.s.listen(10)
-        print("TTP is listening for requests.")
+        print("SERVER is listening for requests.")
         while(True):
             connection, address = self.s.accept()
             # first receive the size of the data the client is going to send
@@ -55,20 +55,19 @@ class Server:
             size = struct.unpack('!I', request_size)[0]
             # receive the real data
             request = connection.recv(size)
-            request = marshal.loads(request)
+            request = pickle.loads(request)
             # do request and prepare response
             if(request['type'] == "INSERT"):
-                self.insert(request['ID'], request['CID'], request['Data'])
-                message = "INSERT SUCCES"
+                message = self.insert(request['ID'], request['CID'], request['Data'])
             elif(request['type'] == "REQUEST"):
-                results = self.request(request['ID'])
-                message = results
+                message = self.request(request['ID'])
             else:
                 message = "Command not recognized."
             # send a message back either containing data or containting a message
-            message = marshal.dumps(message)
+            message = pickle.dumps(message)
             message_send = struct.pack('!I', len(message)) + message
             connection.send(message_send)
+        self.s.close()
 
     def insert(self, ID, CID, Data):
         get_membership_query = "SELECT * FROM Membership WHERE PID = '%i' AND CID = '%i'" % (ID, CID)
@@ -85,15 +84,16 @@ class Server:
                     self.cursor.execute(insert_data_query)
             self.db.commit()
         except:
-           print("Person is not a member or SQL error")
+            print("Person is not a member or SQL error")
+            return "INSERT FAILED"
+        return "INSERT SUCCES"
 
     def request(self, ID):
-        get_data_query = "SELECT * FROM Data WHERE `PID` = '%i'" % ID
+        get_data_query = "SELECT Data FROM Data WHERE `PID` = '%i'" % ID
         print(get_data_query)
         try:
             self.cursor.execute(get_data_query)
             results = self.cursor.fetchall()
-            print(results)
         except:
             print("Could not fetch results")
         finally:
