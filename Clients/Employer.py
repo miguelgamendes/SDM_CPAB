@@ -9,7 +9,7 @@ class Employer(User):
         User.__init__(self, ID, attributes)
 
     def insert(self, Data):
-        raise
+        pass
 
     def retrieve(self):
         User.retrieve(self)

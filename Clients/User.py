@@ -77,7 +77,7 @@ class User:
             self.key = read_key_from_file(keypath + self.filename + ".key", self.group)
             self.mpk = read_key_from_file(keypath + "cp_" + self.filename + ".mpk", self.group)
 
-    # retrieves all data from server
+    # retrieves all data from the server
     def retrieve(self):
         # connect to server
         s = socket.create_connection((self.hostname_server, self.port_server))
@@ -109,7 +109,8 @@ class User:
     # TID is the user for who the data is inserted, there are two cases
     #   * if it is a patient TID and self.ID are the same
     #   * if it is a hospital or healthclub (h(TID), h(self.ID)) has to be in the membership table
-    def insert(self, Data, policy, TID):
+    # Pass contains the password which is used for authentication of the user
+    def insert(self, Data, policy, TID, Pass):
         Data = self.encrypt(Data, policy)
         # connect to server
         s = socket.create_connection((self.hostname_server, self.port_server))
@@ -119,6 +120,7 @@ class User:
         # hash target and source
         obj['target'] = hashlib.sha512(str(TID).encode()).hexdigest()
         obj['source'] = hashlib.sha512(str(self.ID).encode()).hexdigest()
+        obj['Pass'] = hashlib.sha512(Pass.encode()).hexdigest()
         obj['Data'] = Data
         # serialize and send message
         message = pickle.dumps(obj)

@@ -32,21 +32,34 @@ class Server:
     # Table Data contains the patient health data
     # Table Membership conatins the membership relation between users
     def create_tables(self):
+        create_user_table_query = """CREATE TABLE IF NOT EXISTS Users ( 
+                                        ID int NOT NULL AUTO_INCREMENT,
+                                        UID varchar(128) NOT NULL,
+                                        Pass varchar(128) NOT NULL,
+                                        PRIMARY KEY (ID),
+                                        CONSTRAINT C_UID UNIQUE (UID)
+                                    );"""
         create_data_table_query = """CREATE TABLE IF NOT EXISTS Data ( 
                                         ID int NOT NULL AUTO_INCREMENT,
+                                        UID varchar(128),
                                         Data varchar(8192) NOT NULL,
-                                        PRIMARY KEY (ID)
+                                        PRIMARY KEY (ID),
+                                        FOREIGN KEY (UID) REFERENCES Users(UID)
                                     );"""
         create_membership_table_query = """CREATE TABLE IF NOT EXISTS Membership ( 
                                         ID int NOT NULL AUTO_INCREMENT,
-                                        PID varchar(128) NOT NULL,
-                                        CID varchar(128) NOT NULL,
+                                        UID varchar(128) NOT NULL,
+                                        HID varchar(128) NOT NULL,
                                         PRIMARY KEY (ID),
-                                        CONSTRAINT PIDCID UNIQUE (PID,CID)
+                                        FOREIGN KEY (UID) REFERENCES Users(UID),
+                                        FOREIGN KEY (HID) REFERENCES Users(UID),
+                                        CONSTRAINT UIDHID UNIQUE (UID,HID)
                                     );"""
+        # create empty table containing user credentials if it does not exist
+        self.cursor.execute(create_user_table_query)                            
         # create empty table containging data if it does not exist
         self.cursor.execute(create_data_table_query)
-        # create empty table containging data if it does not exist
+        # create empty table containging membership relations if it does not exist
         self.cursor.execute(create_membership_table_query)
 
     # listens to incomming requests
@@ -62,7 +75,7 @@ class Server:
             try:
                 # do request and prepare response
                 if(request['type'] == "INSERT"):
-                    return_message = pickle.dumps(self.insert(request['target'], request['source'], request['Data']))
+                    return_message = pickle.dumps(self.insert(request['target'], request['source'], request['Pass'], request['Data']))
                     message = struct.pack('!BI', 1, len(return_message)) + return_message
                 elif(request['type'] == "REQUEST"):
                     Data = pickle.dumps(self.request())
@@ -78,20 +91,23 @@ class Server:
 
     # inserts entry into Membership table
     # NOTE: In this step the server learns the ID of the patient and the ID of the other party
-    def insert(self, ID, CID, Data):
-        get_membership_query = "SELECT * FROM Membership WHERE PID = '%s' AND CID = '%s'" % (ID, CID)
+    def insert(self, UID, HID, Pass, Data):
+        authenticate_query = "SELECT * FROM Users WHERE UID = '%s' AND Pass = '%s'" % (HID, Pass)
+        get_membership_query = "SELECT * FROM Membership WHERE UID = '%s' AND HID = '%s'" % (UID, HID)
         try:
-            insert_data_query = "INSERT INTO Data (Data) VALUES ('%s')" % (Data)
-            # person inserts own data
-            if(ID == CID):
+            insert_data_query = "INSERT INTO Data (UID, Data) VALUES ('%s', '%s')" % (UID, Data)
+            # authenticate user
+            self.cursor.execute(authenticate_query)
+            if(self.cursor.fetchone() != None):
+                # if the UID and HID do not match UID has to be member of HID
+                if(UID != HID):
+                    self.cursor.execute(get_membership_query)
+                    if(self.cursor.fetchone() == None):
+                        return "NOT IN MEMBERSHIP TABLE"
                 self.cursor.execute(insert_data_query)
-            # person has to be a member of company
+                self.db.commit()
             else:
-                self.cursor.execute(get_membership_query)
-                result = self.cursor.fetchone()
-                if(result[1] == ID and result[2] == CID):
-                    self.cursor.execute(insert_data_query)
-            self.db.commit()
+                return "INSERT FAILED"
         except:
             print("Person is not a member or SQL error")
             raise

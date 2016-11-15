@@ -12,18 +12,18 @@ from Hospital import Hospital
 class Test:
 
     # setup clients, each client has a unique ID and the ID is used as an attribute
-    patient1 = Patient(1)
-    patient2 = Patient(2)
+    patient1 = Patient(1, "pass1")
+    patient2 = Patient(2, "pass2")
     doctor1 = Doctor(3)
     doctor2 = Doctor(4)
     insurance1 = Insurance(5)
     insurance2 = Insurance(6)
     employer1 = Employer(7)
     employer2 = Employer(8)
-    healthclub1 = Healthclub(9)
-    healthclub2 = Healthclub(10)
-    hospital1 = Hospital(11)
-    hospital2 = Hospital(12)
+    healthclub1 = Healthclub(9, "pass3")
+    healthclub2 = Healthclub(10, "pass4")
+    hospital1 = Hospital(11, "pass5")
+    hospital2 = Hospital(12, "pass6")
 
     def __init__(self):
         self.run()
