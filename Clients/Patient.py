@@ -1,15 +1,3 @@
-# Patient: [id], [type] :
-# Encypt: id = patient_id [\/ (type = Doctor /\ id = doctor_id) 
-#                          \/ (type = Insurance /\ id = insurance_id) 
-#                          \/ (type = Employer /\ id = employer_id) 
-#]
-# --------------------------
-# Doctor: [id], [type]
-# Insurance: [id], [type]
-# Health Club: [id], [type]
-# Employer: [id], [type]
-# Hospital: [id], [type] 
-
 from User import User
 
 class Patient(User):
